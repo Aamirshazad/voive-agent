@@ -1,0 +1,8 @@
+{
+  "name": "Prof. Sterling: AI English Instructor",
+  "description": "A professional-grade AI English teacher focusing on advanced grammar, pronunciation correction, and fluency using Gemini 2.5 Live API.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
