@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 
 interface VisualizerProps {
@@ -10,7 +9,6 @@ interface VisualizerProps {
 
 const Visualizer: React.FC<VisualizerProps> = ({ isActive, audioContext, gainNode, color = '#3b82f6' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Add initial value 'undefined' to useRef to satisfy TypeScript "Expected 1 arguments" requirement
   const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -21,7 +19,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ isActive, audioContext, gainNod
     if (!ctx) return;
 
     const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 64; // Low FFT size for chunky bars
     gainNode.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
@@ -33,20 +31,24 @@ const Visualizer: React.FC<VisualizerProps> = ({ isActive, audioContext, gainNod
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const barWidth = (canvas.width / bufferLength) * 2.5;
-      let barHeight;
+      // Calculate bar dimensions based on canvas size
+      const barWidth = (canvas.width / bufferLength) * 0.6;
+      const gap = (canvas.width / bufferLength) * 0.4;
       let x = 0;
 
       for (let i = 0; i < bufferLength; i++) {
-        barHeight = (dataArray[i] / 255) * canvas.height;
+        // Scale bar height to fit canvas vertically
+        const barHeight = (dataArray[i] / 255) * canvas.height;
 
         ctx.fillStyle = color;
-        // Rounded bars
-        ctx.beginPath();
-        ctx.roundRect(x, canvas.height - barHeight, barWidth - 1, barHeight, 4);
-        ctx.fill();
+        
+        // Use standard fillRect to avoid compatibility issues with roundRect
+        // Draw bars from middle outwards or bottom up? Let's do bottom up.
+        // Centering the bars looks cooler for voice
+        const centerY = canvas.height / 2;
+        ctx.fillRect(x, centerY - barHeight / 2, barWidth, barHeight);
 
-        x += barWidth + 1;
+        x += barWidth + gap;
       }
     };
 
@@ -54,7 +56,8 @@ const Visualizer: React.FC<VisualizerProps> = ({ isActive, audioContext, gainNod
 
     return () => {
       if (animationRef.current !== undefined) cancelAnimationFrame(animationRef.current);
-      analyser.disconnect();
+      // Clean up connections if possible, though mostly handled by React unmount
+      try { analyser.disconnect(); } catch (e) {}
     };
   }, [isActive, audioContext, gainNode, color]);
 
@@ -62,8 +65,8 @@ const Visualizer: React.FC<VisualizerProps> = ({ isActive, audioContext, gainNod
     <canvas 
       ref={canvasRef} 
       width={300} 
-      height={100} 
-      className="w-full h-16 opacity-80"
+      height={60} 
+      className="w-full h-12 opacity-90"
     />
   );
 };
